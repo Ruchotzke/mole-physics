@@ -623,9 +623,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   RawImage: {fileID: 802512618}
-  Run: 0
-  UpdateTime: 0.05
-  GridResolution: {x: 50, y: 50}
+  Run: 1
+  UpdateTime: 0.02
+  GridResolution: {x: 100, y: 100}
 --- !u!4 &1027476938
 Transform:
   m_ObjectHideFlags: 0
