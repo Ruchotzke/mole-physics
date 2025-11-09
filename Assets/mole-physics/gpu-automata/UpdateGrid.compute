@@ -1,0 +1,143 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+/// The Grid to operate on
+RWTexture2D<float4> _Grid;
+
+/// Whether the cells start at 0 or 1.
+bool _UseOffset;
+
+
+/// Fill the given cell with a color
+void ColorCell(int2 ll, int2 ur, float4 col)
+{
+    _Grid[uint2(ll.x, ll.y)] = col;
+    _Grid[uint2(ll.x, ur.y - 1)] = col;
+    _Grid[uint2(ur.x - 1, ll.y)] = col; 
+    _Grid[uint2(ur.x - 1, ur.y - 1)] = col;
+}
+
+/// Update this cell given the provided mask
+void UpdateCell(int2 ll, int2 ur, uint mask)
+{
+    switch (mask)
+    {
+        case 1:
+            _Grid[uint2(ll.x, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ll.x, ur.y - 1)] = float4(0, 0, 0, 0);
+            _Grid[uint2(ur.x - 1, ll.y)] = float4(0, 0, 0, 0);
+            _Grid[uint2(ur.x - 1, ur.y - 1)] = float4(0, 0, 0, 0);
+            break;
+        case 2:
+            _Grid[uint2(ll.x, ll.y)] = float4(0, 0, 0, 0);
+            _Grid[uint2(ll.x, ur.y - 1)] = float4(0, 0, 0, 0);
+            _Grid[uint2(ur.x - 1, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ur.x - 1, ur.y - 1)] = float4(0, 0, 0, 0);
+            break;
+        case 3:
+            _Grid[uint2(ll.x, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ll.x, ur.y - 1)] = float4(0, 0, 0, 0);
+            _Grid[uint2(ur.x - 1, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ur.x - 1, ur.y - 1)] = float4(0, 0, 0, 0);
+            break;
+        case 5:
+            _Grid[uint2(ll.x, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ll.x, ur.y - 1)] = float4(0, 0, 0, 0);
+            _Grid[uint2(ur.x - 1, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ur.x - 1, ur.y - 1)] = float4(0, 0, 0, 0);
+            break;
+        case 6:
+            _Grid[uint2(ll.x, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ll.x, ur.y - 1)] = float4(0, 0, 0, 0);
+            _Grid[uint2(ur.x - 1, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ur.x - 1, ur.y - 1)] = float4(0, 0, 0, 0);
+            break;
+        case 7:
+            _Grid[uint2(ll.x, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ll.x, ur.y - 1)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ur.x - 1, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ur.x - 1, ur.y - 1)] = float4(0, 0, 0, 0);
+            break;
+        case 9:
+            _Grid[uint2(ll.x, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ll.x, ur.y - 1)] = float4(0, 0, 0, 0);
+            _Grid[uint2(ur.x - 1, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ur.x - 1, ur.y - 1)] = float4(0, 0, 0, 0);
+            break;
+        case 10:
+            _Grid[uint2(ll.x, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ll.x, ur.y - 1)] = float4(0, 0, 0, 0);
+            _Grid[uint2(ur.x - 1, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ur.x - 1, ur.y - 1)] = float4(0, 0, 0, 0);
+            break;
+        case 11:
+            _Grid[uint2(ll.x, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ll.x, ur.y - 1)] = float4(0, 0, 0, 0);
+            _Grid[uint2(ur.x - 1, ll.y)] = float4(1, 1, 1, 1);
+            _Grid[uint2(ur.x - 1, ur.y - 1)] = float4(1, 1, 1, 1);
+            break;
+        default:
+            break;
+    }
+}
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    /* Compute bounds */
+    int2 ll = int2(id.x * 2, id.y * 2);
+    int2 ur = int2((id.x + 1) * 2, (id.y + 1) * 2);
+    if(_UseOffset)      // TODO: conditional super early - might be worth checking if a completely sep. offset shader is better
+    {
+        ll -= int2(1, 1);
+        ur -= int2(1, 1);
+    }
+
+    /* Adjust for world bounds */
+    uint width;
+    uint height;
+    _Grid.GetDimensions(width, height);
+    bool clipped = false;
+    if(ll.x < 0)
+    {
+        ll.x = 0;
+        clipped = true;
+    }
+    if(ll.y < 0)
+    {
+        ll.y = 0;
+        clipped = true;
+    }
+    if(ur.x > width)
+    {
+        ur.x = width;
+        clipped = true;
+    }
+    if(ur.y > height)
+    {
+        ur.y = height;
+        clipped = true;
+    }
+
+    /* Apply falling sand automata */
+    if(!clipped)
+    {
+        /* Compute Mask */
+        uint mask = 0;
+        if(_Grid[uint2(ll.x, ur.y-1)].x != 0) mask |= 1;
+        if(_Grid[uint2(ur.x-1, ur.y-1)].x != 0) mask |= 2;
+        if(_Grid[uint2(ur.x-1, ll.x)].x != 0) mask |= 4;
+        if(_Grid[uint2(ll.x, ll.y)].x != 0) mask |= 8;
+
+        /* Act on mask */
+        if(mask == 1 || mask == 2 || mask == 3 || mask == 5 || mask == 6 || mask == 7 || mask == 9 || mask == 10 || mask == 11)
+        {
+            ColorCell(ll, ur, float4(0, 1, 1, 1));
+        }
+        // UpdateCell(ll, ur, mask);
+    } else
+    {
+        ColorCell(ll, ur, float4(0.0, 1.0, 1.0, 1.0));
+    }
+    
+}

@@ -24,7 +24,7 @@ namespace mole_physics
         private float _timer;
         private Texture2D _texture;
 
-        private Vector2Int ChunkSize = new Vector2Int(15, 15);
+        private Vector2Int ChunkSize = new Vector2Int(8, 8);
         private Vector2Int NumChunks;
 
         private void Awake()

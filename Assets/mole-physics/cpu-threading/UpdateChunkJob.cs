@@ -1,3 +1,4 @@
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
@@ -5,6 +6,7 @@ using Unity.Mathematics;
 
 namespace mole_physics.cpu_threading
 {
+    [BurstCompile]
     public struct UpdateChunkJob : IJobParallelFor
     {
 

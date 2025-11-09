@@ -1,0 +1,41 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+/// The Grid to operate on
+RWTexture2D<float4> _Grid;
+
+/// Initial Positions
+StructuredBuffer<uint2> _InitialPositions;
+
+/// Buffer Length
+int _BufferLen;
+
+[numthreads(32,32,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    uint width, height;
+    _Grid.GetDimensions(width, height);
+
+    /* Determine if this point needs to be filled */
+    bool toFill = false;
+    for (int i = 0; i < _BufferLen; i++)
+    {
+        if(id.x == _InitialPositions[i].x && id.y == _InitialPositions[i].y)
+        {
+            toFill = true;
+            break;
+        }
+    }
+    
+    if(id.x < width && id.y < height)
+    {
+        if(toFill)
+        {
+            _Grid[id.xy] = float4(1, 1, 0, 1);
+        }
+        else
+        {
+            _Grid[id.xy] = float4(0, 0, 0, 0);
+        }
+    }
+}
